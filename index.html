@@ -1,0 +1,3326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Great Indoor Tech Race | Live Leaderboard & Arena Control</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(14, 20, 32, 0.85);
+      --bg-card-hover: rgba(22, 31, 48, 0.9);
+      --border-color: rgba(56, 189, 248, 0.18);
+      --border-glow: rgba(56, 189, 248, 0.4);
+      --primary: #00f0ff;
+      --primary-glow: rgba(0, 240, 255, 0.35);
+      --accent: #f59e0b;
+      --accent-neon: #ff0055;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-body: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.07), transparent 40%),
+        radial-gradient(circle at 10% 40%, rgba(168, 85, 247, 0.05), transparent 30%),
+        radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.04), transparent 35%),
+        linear-gradient(to bottom, #07090e, #0b0f19);
+      background-attachment: fixed;
+    }
+
+    /* Subtle Animated Tech Grid Overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Dashboard Layout: Top Ribbon (Header+Timer) + Main Arena */
+    .app-viewport {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0.75rem 1.25rem 0.85rem 1.25rem;
+      gap: 0.75rem;
+      position: relative;
+      z-index: 1;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    /* ==============================================================
+       TOP HORIZONTAL CONTROL RIBBON (Header + Round + Timer)
+       Fits perfectly on a single screen without pushing content!
+       ============================================================== */
+    .top-ribbon {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 0.85rem 1.4rem;
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.05);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .top-ribbon::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--purple), transparent);
+    }
+
+    /* Left Brand Section */
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      min-width: 280px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.25));
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 40%, #38bdf8 80%, #a855f7 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+
+    .brand-text .tagline {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .live-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #34d399;
+      animation: blink 0.8s infinite alternate;
+    }
+
+    @keyframes blink {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    /* Center: Round Badge & Animated Digital Countdown Clock */
+    .center-timer-hub {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    /* Round Controls */
+    .round-control-unit {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.3rem 0.65rem;
+      border-radius: 12px;
+    }
+
+    .round-title-pill {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--primary);
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+      min-width: 90px;
+    }
+
+    .round-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .btn-step {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-step:hover {
+      background: var(--primary);
+      color: #041019;
+      border-color: var(--primary);
+    }
+
+    .round-input-num {
+      width: 44px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 800;
+      background: rgba(8, 12, 22, 0.9);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 6px;
+      color: #fff;
+      padding: 0.2rem 0;
+      outline: none;
+    }
+
+    .round-input-num:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+
+    /* Vertical Divider */
+    .ribbon-divider {
+      width: 1px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Animated Countdown Display - Grand Arena Size */
+    .countdown-display-unit {
+      display: flex;
+      align-items: baseline;
+      font-family: var(--font-mono);
+      font-size: 4.1rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(0, 240, 255, 0.55);
+      user-select: none;
+      min-width: 285px;
+      justify-content: center;
+      line-height: 1;
+      letter-spacing: 2px;
+    }
+
+    .countdown-display-unit.danger-time {
+      color: #ef4444;
+      text-shadow: 0 0 35px rgba(239, 68, 68, 0.9);
+      animation: danger-pulse 0.9s infinite alternate;
+    }
+
+    @keyframes danger-pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.035); }
+    }
+
+    .unit-num {
+      display: inline-block;
+      min-width: 1.8ch;
+      text-align: center;
+    }
+
+    .unit-colon {
+      color: var(--primary);
+      opacity: 0.85;
+      margin: 0 0.08rem;
+    }
+
+    .danger-time .unit-colon {
+      color: #ef4444;
+    }
+
+    .unit-ms {
+      font-size: 0.48em;
+      color: var(--primary);
+      min-width: 2.2ch;
+      margin-left: 0.35rem;
+      font-weight: 700;
+      text-shadow: 0 0 14px var(--primary-glow);
+    }
+
+    .danger-time .unit-ms {
+      color: #f87171;
+    }
+
+    /* Timer Action Buttons */
+    .timer-action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-ribbon {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .btn-ribbon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .btn-ribbon:active {
+      transform: scale(0.96);
+    }
+
+    .btn-ribbon-play {
+      background: linear-gradient(135deg, #00f0ff, #0284c7);
+      color: #041019;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+    }
+
+    .btn-ribbon-play:hover:not(:disabled) {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      box-shadow: 0 0 22px rgba(0, 240, 255, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn-ribbon-pause {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1f1202;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-ribbon-pause:hover:not(:disabled) {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      transform: translateY(-1px);
+    }
+
+    .btn-ribbon-lap {
+      background: rgba(168, 85, 247, 0.15);
+      color: #d8b4fe;
+      border-color: rgba(168, 85, 247, 0.35);
+    }
+
+    .btn-ribbon-lap:hover:not(:disabled) {
+      background: rgba(168, 85, 247, 0.28);
+      border-color: #c084fc;
+      transform: translateY(-1px);
+    }
+
+    .btn-ribbon-reset {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-ribbon-reset:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #f87171;
+      transform: translateY(-1px);
+    }
+
+    .btn-ribbon:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Right Section: Duration Presets & Audio */
+    .right-tools-section {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .duration-pills-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 0.25rem 0.4rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .duration-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 0 0.35rem;
+      letter-spacing: 0.5px;
+    }
+
+    .min-pill {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .min-pill:hover, .min-pill.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .custom-min-input {
+      width: 44px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(10, 16, 28, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 5px;
+      color: #fff;
+      padding: 0.2rem 0.3rem;
+      text-align: center;
+    }
+
+    .custom-min-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn-icon-square {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-square:hover, .btn-icon-square.active {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.35);
+      color: var(--primary);
+    }
+
+    /* Small sound on/off button */
+    .btn-sound-small {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .btn-sound-small:hover, .btn-sound-small.active {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.4);
+      color: var(--primary);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    }
+
+    /* Sidebar sound button (full width) */
+    .btn-sound-sidebar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.55rem 0.5rem;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 0.5rem;
+    }
+
+    .btn-sound-sidebar:hover, .btn-sound-sidebar.active {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.4);
+      color: var(--primary);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+    }
+
+    /* Confirm Dialog Overlay */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 16, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+    .confirm-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .confirm-card {
+      background: #0d1322;
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 1.75rem;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9), 0 0 30px rgba(0, 240, 255, 0.15);
+      transform: translateY(12px) scale(0.97);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .confirm-overlay.active .confirm-card {
+      transform: translateY(0) scale(1);
+    }
+    .confirm-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .confirm-icon.danger {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+    .confirm-icon.warning {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+    }
+    .confirm-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .confirm-desc {
+      color: var(--text-muted);
+      font-size: 0.83rem;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 0.65rem;
+    }
+    .confirm-btn-cancel {
+      flex: 1;
+      padding: 0.6rem;
+      border-radius: 9px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .confirm-btn-cancel:hover { background: rgba(255,255,255,0.13); }
+    .confirm-btn-danger {
+      flex: 1;
+      padding: 0.6rem;
+      border-radius: 9px;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .confirm-btn-danger:hover {
+      background: #ef4444;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.55);
+    }
+    .confirm-btn-warn {
+      flex: 1;
+      padding: 0.6rem;
+      border-radius: 9px;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fcd34d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .confirm-btn-warn:hover {
+      background: #f59e0b;
+      color: #1f1202;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.55);
+    }
+
+    /* ==============================================================
+       MAIN WORKSPACE (Slim metrics sidebar + Expanded live standings)
+       ============================================================== */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 165px 1fr;
+      gap: 0.85rem;
+      flex: 1;
+      min-height: 0; /* Crucial for internal scroll without page scroll */
+    }
+
+    /* Left Sidebar Column */
+    .sidebar-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.6);
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .card-title svg {
+      color: var(--primary);
+    }
+
+    .form-group-compact {
+      margin-bottom: 0.75rem;
+    }
+
+    .form-group-compact label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .input-compact {
+      width: 100%;
+      background: rgba(8, 13, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.55rem 0.8rem;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      transition: all 0.2s;
+    }
+
+    .input-compact:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .input-compact::placeholder {
+      color: rgba(148, 163, 184, 0.4);
+    }
+
+    .btn-add-team {
+      width: 100%;
+      background: linear-gradient(135deg, #00f0ff, #3b82f6);
+      color: #05101a;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.65rem;
+      border-radius: 9px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-add-team:hover {
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+      transform: translateY(-1px);
+    }
+
+    /* Race Metrics: Stacked Vertically (One Below Another) */
+    .mini-stats-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .mini-stat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 0.65rem 0.4rem;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .mini-stat-box:hover {
+      background: rgba(0, 240, 255, 0.05);
+      border-color: rgba(0, 240, 255, 0.2);
+    }
+
+    .mini-stat-val {
+      font-family: var(--font-mono);
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.1;
+      text-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .mini-stat-lbl {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Lap benchmarks drawer in sidebar */
+    .laps-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .laps-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .laps-card-scroll {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding-right: 0.25rem;
+    }
+
+    .lap-badge-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0.65rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 7px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .lap-badge-item .lap-title {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ==============================================================
+       RIGHT LEADERBOARD PANE
+       Expanded to fill screen, internal table scroll without page scroll!
+       ============================================================== */
+    .leaderboard-pane {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.7);
+    }
+
+    .leaderboard-top-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .leaderboard-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .leaderboard-heading {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .teams-count-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 9999px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: var(--primary);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .search-input-sleek {
+      background: rgba(8, 13, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      color: #fff;
+      font-size: 0.82rem;
+      width: 170px;
+      transition: all 0.2s;
+    }
+
+    .search-input-sleek:focus {
+      outline: none;
+      border-color: var(--primary);
+      width: 210px;
+    }
+
+    .btn-action-sm {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--text-muted);
+      padding: 0.42rem 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+
+    .btn-action-sm:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Table Container with Slim Cyberpunk Scrollbar */
+    .table-viewport {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* Custom Scrollbar */
+    .table-viewport::-webkit-scrollbar,
+    .laps-card-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .table-viewport::-webkit-scrollbar-track,
+    .laps-card-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .table-viewport::-webkit-scrollbar-thumb,
+    .laps-card-scroll::-webkit-scrollbar-thumb {
+      background: rgba(0, 240, 255, 0.25);
+      border-radius: 4px;
+    }
+
+    .table-viewport::-webkit-scrollbar-thumb:hover,
+    .laps-card-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 240, 255, 0.5);
+    }
+
+    table.race-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      text-align: left;
+    }
+
+    table.race-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #0d1422;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 700;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    }
+
+    table.race-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+      transition: all 0.2s ease;
+    }
+
+    table.race-table tbody tr {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    table.race-table tbody tr:hover {
+      background: rgba(0, 240, 255, 0.05);
+    }
+
+    table.race-table tbody tr.row-selected {
+      background: rgba(0, 240, 255, 0.09) !important;
+      border-left: 3px solid var(--primary);
+    }
+
+    /* Rank Badges - Prominent, Large & High Visibility */
+    .rank-cell {
+      width: 110px;
+      text-align: center;
+    }
+
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      min-width: 74px;
+      height: 44px;
+      padding: 0.2rem 0.65rem;
+      border-radius: 12px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-family: var(--font-mono);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.25s ease;
+    }
+
+    .rank-badge .rank-medal-icon {
+      font-size: 1.45rem;
+      line-height: 1;
+      display: inline-block;
+      filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5));
+    }
+
+    .rank-badge .rank-text-num {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .rank-1 .rank-badge {
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+      color: #ffffff;
+      border: 1px solid rgba(251, 191, 36, 0.7);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.55), 0 0 8px rgba(251, 191, 36, 0.4);
+      transform: scale(1.05);
+    }
+
+    .rank-2 .rank-badge {
+      background: linear-gradient(135deg, #94a3b8, #475569);
+      color: #ffffff;
+      border: 1px solid rgba(203, 213, 225, 0.6);
+      box-shadow: 0 0 16px rgba(148, 163, 184, 0.45);
+    }
+
+    .rank-3 .rank-badge {
+      background: linear-gradient(135deg, #cd7f32, #78350f);
+      color: #fef3c7;
+      border: 1px solid rgba(217, 119, 6, 0.6);
+      box-shadow: 0 0 14px rgba(180, 83, 9, 0.45);
+    }
+
+    .rank-other .rank-badge {
+      background: rgba(14, 20, 32, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.22);
+      color: #94a3b8;
+    }
+
+    /* Register Team Button & Card Styles */
+    .btn-ribbon-register {
+      background: linear-gradient(135deg, #00f0ff, #3b82f6);
+      color: #03111b;
+      font-weight: 800;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
+      border: 1px solid rgba(0, 240, 255, 0.5);
+    }
+
+    .btn-ribbon-register:hover {
+      background: linear-gradient(135deg, #38bdf8, #60a5fa);
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.65);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-primary {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(59, 130, 246, 0.2));
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s;
+    }
+
+    .btn-action-primary:hover {
+      background: var(--primary);
+      color: #03111b;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .register-trigger-card {
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      background: linear-gradient(135deg, rgba(14, 20, 32, 0.95), rgba(16, 25, 42, 0.9));
+      box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 240, 255, 0.08);
+    }
+
+    .register-trigger-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.25));
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+    }
+
+    /* Team Info */
+    .team-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .team-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.25));
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .team-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .team-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .team-id-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--primary);
+      background: rgba(0, 240, 255, 0.08);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      display: inline-block;
+      width: fit-content;
+      margin-top: 0.15rem;
+    }
+
+    /* Points Cell */
+    .points-cell {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .points-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--primary);
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      padding: 0.25rem 0.65rem;
+      border-radius: 7px;
+      transition: all 0.25s;
+    }
+
+    .points-highlight {
+      animation: score-pop 0.4s ease;
+    }
+
+    @keyframes score-pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.25); background: rgba(0, 240, 255, 0.35); }
+      100% { transform: scale(1); }
+    }
+
+    /* Row Actions */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    .quick-point-btn {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .quick-point-btn:hover {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #34d399;
+      color: #34d399;
+      transform: translateY(-1px);
+    }
+
+    .btn-edit-points {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.3rem 0.65rem;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: all 0.2s;
+    }
+
+    .btn-edit-points:hover {
+      background: var(--primary);
+      color: #041019;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+    }
+
+    .btn-del-team {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.22);
+      color: rgba(239, 68, 68, 0.75);
+      cursor: pointer;
+      padding: 0.35rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-del-team:hover {
+      color: #fff;
+      background: #ef4444;
+      border-color: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+      transform: scale(1.08);
+    }
+
+    /* Per-team history clock button in each row */
+    .btn-team-history {
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.22);
+      color: rgba(168, 85, 247, 0.75);
+      cursor: pointer;
+      padding: 0.35rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-team-history:hover {
+      color: #e9d5ff;
+      background: rgba(168, 85, 247, 0.25);
+      border-color: #a855f7;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+      transform: scale(1.08);
+    }
+
+    /* Clean Empty State within Leaderboard */
+    .empty-state-wrap {
+      padding: 4rem 2rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .empty-state-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.1);
+    }
+
+    .empty-state-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .empty-state-desc {
+      color: var(--text-muted);
+      max-width: 380px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .btn-sample-inline {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-sample-inline:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* ==============================================================
+       MODAL: ADD POINTS POPUP
+       ============================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 16, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      padding: 1rem;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #0d1322;
+      border: 1px solid var(--border-glow);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 440px;
+      padding: 1.75rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 240, 255, 0.2);
+      transform: translateY(15px) scale(0.97);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1.1rem;
+      right: 1.1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      border-radius: 7px;
+      padding: 0.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .modal-team-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-curr-val {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .quick-presets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.55rem 0.2rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .preset-chip:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .preset-chip.minus {
+      color: #fca5a5;
+    }
+
+    .preset-chip.minus:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #0f172a;
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      padding: 0.7rem 1.1rem;
+      color: #fff;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      animation: toast-in 0.25s ease-out forwards;
+      pointer-events: auto;
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(15px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ==============================================================
+       HISTORY MODAL
+       ============================================================== */
+    .history-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 8, 16, 0.82);
+      backdrop-filter: blur(10px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      padding: 1rem;
+    }
+    .history-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .history-modal-card {
+      background: #0c1220;
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 780px;
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 60px -15px rgba(0,0,0,0.95), 0 0 40px rgba(0,240,255,0.12);
+      transform: translateY(18px) scale(0.97);
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+    .history-modal.active .history-modal-card {
+      transform: translateY(0) scale(1);
+    }
+    .history-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .history-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .history-modal-title-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.25));
+      border: 1px solid rgba(168,85,247,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #c084fc;
+      box-shadow: 0 0 12px rgba(168,85,247,0.2);
+    }
+    .history-modal-title h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .history-modal-title p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .history-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .history-count-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 9999px;
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.3);
+      color: #c084fc;
+    }
+    .btn-clear-history {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.22);
+      color: rgba(239,68,68,0.75);
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.35rem 0.65rem;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: all 0.15s;
+    }
+    .btn-clear-history:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(239,68,68,0.4);
+    }
+    .btn-close-history {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-close-history:hover {
+      background: rgba(239,68,68,0.2);
+      color: #ef4444;
+    }
+    .history-table-viewport {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .history-table-viewport::-webkit-scrollbar { width: 6px; }
+    .history-table-viewport::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    .history-table-viewport::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.3); border-radius: 4px; }
+    .history-table-viewport::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.6); }
+    table.history-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      text-align: left;
+    }
+    table.history-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #0d1422;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 700;
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+    }
+    table.history-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+      font-size: 0.85rem;
+    }
+    table.history-table tbody tr:hover { background: rgba(168,85,247,0.05); }
+    .history-round-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(0,240,255,0.1);
+      border: 1px solid rgba(0,240,255,0.25);
+      color: var(--primary);
+    }
+    .history-delta-pos {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #34d399;
+    }
+    .history-delta-neg {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #f87171;
+    }
+    .history-delta-zero {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .history-team-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .history-team-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(168,85,247,0.25));
+      border: 1px solid rgba(0,240,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .history-empty {
+      padding: 3.5rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .history-empty svg { margin: 0 auto 0.75rem; display: block; opacity: 0.4; }
+    .history-empty p { font-size: 0.88rem; }
+    .history-time-cell {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .history-reason-cell {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .btn-action-sm.btn-history {
+      background: rgba(168,85,247,0.1);
+      border-color: rgba(168,85,247,0.3);
+      color: #c084fc;
+    }
+    .btn-action-sm.btn-history:hover {
+      background: rgba(168,85,247,0.22);
+      border-color: #a855f7;
+      color: #e9d5ff;
+    }
+    .history-footer {
+      padding: 0.75rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.015);
+    }
+    .history-footer-stat {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .history-footer-stat strong {
+      color: #c084fc;
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    
+    <!-- ==========================================================
+         COMPACT TOP HORIZONTAL CONTROL RIBBON
+         Fits Title, Round #, Countdown Timer, and Duration on one row!
+         ========================================================== -->
+    <header class="top-ribbon">
+      
+      <!-- Brand Title & Live Status -->
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>The Great Indoor Tech Race</h1>
+          <div class="tagline">
+            <span class="live-tag"><span class="live-dot"></span>Live</span>
+            <span>Speed Arena & Challenge Standings</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Round Controller & Countdown Clock -->
+      <div class="center-timer-hub">
+        
+        <!-- Round Controller -->
+        <div class="round-control-unit" title="Set competition round number">
+          <div class="round-title-pill" id="roundTitleDisplay">ROUND #1</div>
+          <div class="round-stepper">
+            <button type="button" class="btn-step" id="btnRoundMinus" title="Previous Round">−</button>
+            <input 
+              type="number" 
+              id="roundNumberInput" 
+              class="round-input-num" 
+              value="1" 
+              min="1" 
+              max="99" 
+              title="Type round number"
+            />
+            <button type="button" class="btn-step" id="btnRoundPlus" title="Next Round">+</button>
+          </div>
+        </div>
+
+        <div class="ribbon-divider"></div>
+
+        <!-- Animated Countdown Clock Display (MM:SS.ms) -->
+        <div class="countdown-display-unit" id="timerDisplay">
+          <span class="unit-num" id="displayMinutes">10</span>
+          <span class="unit-colon">:</span>
+          <span class="unit-num" id="displaySeconds">00</span>
+          <span class="unit-ms" id="displayMs">.00</span>
+        </div>
+
+        <!-- Timer Action Buttons -->
+        <div class="timer-action-buttons">
+          <button id="btnPlay" class="btn-ribbon btn-ribbon-play" title="Start / Resume Countdown">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="btnPlayText">Start</span>
+          </button>
+
+          <button id="btnPause" class="btn-ribbon btn-ribbon-pause" disabled title="Pause Countdown">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+            Pause
+          </button>
+
+          <button id="btnLap" class="btn-ribbon btn-ribbon-lap" disabled title="Mark checkpoint / lap remaining">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+              <line x1="4" y1="22" x2="4" y2="15"></line>
+            </svg>
+            Lap
+          </button>
+
+          <button id="btnReset" class="btn-ribbon btn-ribbon-reset" title="Reset Timer to Duration">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            Reset
+          </button>
+        </div>
+
+        <!-- Duration Presets (Moved inside next to timer action buttons) -->
+        <div class="duration-pills-bar">
+          <span class="duration-label">Timer:</span>
+          <button type="button" class="min-pill" data-minutes="3">3m</button>
+          <button type="button" class="min-pill" data-minutes="5">5m</button>
+          <button type="button" class="min-pill" data-minutes="7">7m</button>
+          <button type="button" class="min-pill active" data-minutes="10">10m</button>
+          <input 
+            type="number" 
+            id="customMinutesInput" 
+            class="custom-min-input" 
+            placeholder="Min" 
+            min="1" 
+            max="180" 
+            value="10" 
+            title="Type custom minutes & press Enter"
+          />
+        </div>
+
+      </div>
+
+      <!-- Right: Fullscreen at the end -->
+      <div class="right-tools-section">
+        <!-- Fullscreen Button -->
+        <button id="fullscreenToggle" class="btn-icon-square" title="Toggle Fullscreen Arena View">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+      </div>
+
+    </header>
+
+    <!-- ==========================================================
+         MAIN WORKSPACE: SIDEBAR (STATS ONLY) + LEADERBOARD
+         ========================================================== -->
+    <div class="workspace-grid">
+      
+      <!-- LEFT SIDEBAR: Race Metrics Only -->
+      <aside class="sidebar-pane">
+        
+        <!-- Quick Summary Stats -->
+        <div class="card">
+          <h2 class="card-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M18 20V10M12 20V4M6 20v-6"></path>
+            </svg>
+            Race Metrics
+          </h2>
+          <div class="mini-stats-grid">
+            <div class="mini-stat-box">
+              <div class="mini-stat-val" id="statTotalTeams">0</div>
+              <div class="mini-stat-lbl">Teams</div>
+            </div>
+            <div class="mini-stat-box">
+              <div class="mini-stat-val" id="statTopScore">0</div>
+              <div class="mini-stat-lbl">Top Score</div>
+            </div>
+            <div class="mini-stat-box">
+              <div class="mini-stat-val" id="statTotalPoints">0</div>
+              <div class="mini-stat-lbl">Total Points</div>
+            </div>
+            <div class="mini-stat-box">
+              <div class="mini-stat-val" id="statAvgPoints">0</div>
+              <div class="mini-stat-lbl">Avg Score</div>
+            </div>
+          </div>
+          <!-- Sound Toggle in sidebar -->
+          <button id="soundToggle" class="btn-sound-sidebar active" title="Toggle audio feedback">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.08"></path>
+            </svg>
+            <span id="soundToggleText">Sound ON</span>
+          </button>
+        </div>
+
+        <!-- Recorded Laps List (If any recorded) -->
+        <div class="card laps-card" id="lapsSidebarCard" style="display: none;">
+          <div class="laps-card-header">
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+              Laps (<span id="lapCount">0</span>)
+            </span>
+            <button id="btnClearLaps" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem; text-decoration:underline;">Clear</button>
+          </div>
+          <div class="laps-card-scroll" id="lapsList"></div>
+        </div>
+
+      </aside>
+
+      <!-- RIGHT MAIN AREA: LEADERBOARD TABLE -->
+      <main class="leaderboard-pane">
+        
+        <!-- Leaderboard Header Toolbar -->
+        <div class="leaderboard-top-toolbar">
+          <div class="leaderboard-title-group">
+            <h2 class="leaderboard-heading">Live Standings</h2>
+            <span class="teams-count-badge" id="teamsBadge">0 Teams</span>
+          </div>
+
+          <div class="toolbar-actions">
+            <button id="btnOpenRegisterToolbar" class="btn-action-primary" title="Register New Team">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <line x1="19" y1="8" x2="19" y2="14"></line>
+                <line x1="22" y1="11" x2="16" y2="11"></line>
+              </svg>
+              <span>Register Team</span>
+            </button>
+            <input 
+              type="text" 
+              id="searchBox" 
+              class="search-input-sleek" 
+              placeholder="Search team or ID..." 
+            />
+            <button id="btnLoadSample" class="btn-action-sm" title="Load sample demo teams">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Sample Data
+            </button>
+            <button id="btnClearTeams" class="btn-action-sm" title="Reset all team scores to 0 (teams remain on leaderboard)">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              <span>Reset Scores</span>
+            </button>
+            <button id="btnOpenHistory" class="btn-action-sm btn-history" title="View points history log">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 8v4l3 3"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              History
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Viewport with Internal Scroll -->
+        <div class="table-viewport">
+          <table class="race-table" id="raceTable">
+            <thead>
+              <tr>
+                <th style="width: 110px; text-align: center;">Rank</th>
+                <th>Team Info</th>
+                <th style="width: 130px;">Score</th>
+                <th style="width: 220px; text-align: right;">Quick Add / Actions</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+
+          <!-- Empty State (Shown when no teams exist) -->
+          <div id="emptyState" class="empty-state-wrap">
+            <div class="empty-state-icon">
+              <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                <path d="M4 22h16"></path>
+                <path d="M10 14.66V17c0 .55-.45 1-1 1H7"></path>
+                <path d="M14 14.66V17c0 .55.45 1 1 1h2"></path>
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+              </svg>
+            </div>
+            <h3 class="empty-state-title">Leaderboard is Currently Empty</h3>
+            <p class="empty-state-desc">No teams have registered yet. Register teams in the sidebar, or load sample competitors to preview live scoring.</p>
+            <button id="btnEmptySample" class="btn-sample-inline">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              Load Sample Teams
+            </button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ==========================================================
+       MODAL: POINT ADDING INTERFACE
+       ========================================================== -->
+  <div class="modal-overlay" id="pointModal">
+    <div class="modal-card">
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close modal">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <h3 style="font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 0.2rem;">
+        Add Points to Team
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1.1rem;">
+        Standings will instantly auto-sort top-to-bottom!
+      </p>
+
+      <!-- Selected Team Info Preview -->
+      <div class="modal-team-preview">
+        <div class="team-avatar" id="modalTeamAvatar">TR</div>
+        <div>
+          <h4 id="modalTeamName" style="color: #fff; font-size: 1.05rem; font-weight: 700;">Team Name</h4>
+          <span class="team-id-tag" id="modalTeamId">ID: --</span>
+        </div>
+        <div style="margin-left: auto; text-align: right;">
+          <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Current Score</div>
+          <div class="modal-curr-val" id="modalCurrentPoints">0</div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <label style="margin-bottom: 0.4rem; display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+        Quick Add Presets
+      </label>
+      <div class="quick-presets-grid">
+        <button type="button" class="preset-chip" onclick="applyPreset(10)">+10</button>
+        <button type="button" class="preset-chip" onclick="applyPreset(25)">+25</button>
+        <button type="button" class="preset-chip" onclick="applyPreset(50)">+50</button>
+        <button type="button" class="preset-chip" onclick="applyPreset(100)">+100</button>
+        <button type="button" class="preset-chip" onclick="applyPreset(200)">+200</button>
+        <button type="button" class="preset-chip" onclick="applyPreset(500)">+500</button>
+        <button type="button" class="preset-chip minus" onclick="applyPreset(-10)">-10</button>
+        <button type="button" class="preset-chip minus" onclick="applyPreset(-50)">-50</button>
+      </div>
+
+      <!-- Custom Points Form -->
+      <form id="pointsForm">
+        <div class="form-group-compact">
+          <label for="customPointsInput">Custom Points to Add / Subtract</label>
+          <input 
+            type="number" 
+            id="customPointsInput" 
+            class="input-compact" 
+            placeholder="e.g. 50 (or negative like -20)" 
+            step="1" 
+            required 
+          />
+        </div>
+
+        <div class="form-group-compact" style="margin-bottom: 1.1rem;">
+          <label for="reasonInput">Reason / Challenge (Optional)</label>
+          <input 
+            type="text" 
+            id="reasonInput" 
+            class="input-compact" 
+            placeholder="e.g. Circuit Challenge, Fastest Hack" 
+          />
+        </div>
+
+        <div style="display: flex; gap: 0.6rem;">
+          <button type="button" class="btn-ribbon" style="flex: 1; background: rgba(255,255,255,0.08); color: #fff; justify-content: center;" onclick="closePointModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn-add-team" style="flex: 2; margin-top: 0;">
+            Confirm & Rank
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       MODAL: REGISTER TEAM WINDOW
+       ========================================================== -->
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal-card">
+      <button class="modal-close" id="registerModalCloseBtn" title="Close Window (Esc)">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.25rem;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(59, 130, 246, 0.3)); border: 1px solid var(--primary); display: flex; align-items: center; justify-content: center; color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); flex-shrink: 0;">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Register Team</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Enter competitor details to join the live leaderboard</p>
+        </div>
+      </div>
+
+      <form id="addTeamForm">
+        <div class="form-group-compact">
+          <label for="teamNameInput">Team Name</label>
+          <input 
+            type="text" 
+            id="teamNameInput" 
+            class="input-compact" 
+            placeholder="e.g. Cyber Ninjas" 
+            required 
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group-compact">
+          <label for="teamIdInput">Team ID</label>
+          <input 
+            type="text" 
+            id="teamIdInput" 
+            class="input-compact" 
+            placeholder="e.g. TR-101" 
+            required 
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group-compact">
+          <label for="initialPointsInput">Initial Points (Optional)</label>
+          <input 
+            type="number" 
+            id="initialPointsInput" 
+            class="input-compact" 
+            placeholder="0" 
+            min="0"
+            step="5"
+            value="0"
+          />
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+          <button type="button" id="btnCancelRegister" class="btn-sample-inline" style="flex: 1; justify-content: center;">
+            Cancel
+          </button>
+          <button type="submit" class="btn-add-team" style="flex: 2; margin-top: 0;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add To Leaderboard
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="history-modal" id="historyModal">
+    <div class="history-modal-card">
+      <div class="history-modal-header">
+        <div class="history-modal-title">
+          <div class="history-modal-title-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 8v4l3 3"></path>
+              <circle cx="12" cy="12" r="10"></circle>
+            </svg>
+          </div>
+          <div>
+            <h3 id="historyModalTitle">Points History</h3>
+            <p id="historyModalSubtitle">Full log of score changes across all rounds</p>
+          </div>
+        </div>
+        <div class="history-modal-actions">
+          <span class="history-count-badge" id="historyCountBadge">0 Events</span>
+          <button class="btn-clear-history" id="btnClearHistory" title="Clear all history">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Clear
+          </button>
+          <button class="btn-close-history" id="btnCloseHistory" title="Close (Esc)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="history-table-viewport" id="historyTableViewport">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="history-footer">
+        <span class="history-footer-stat">Total events: <strong id="historyFooterCount">0</strong></span>
+        <span class="history-footer-stat">Rounds logged: <strong id="historyFooterRounds">—</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Custom Confirm Dialog -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-card">
+      <div class="confirm-icon" id="confirmIcon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+      <div class="confirm-desc" id="confirmDesc">This action cannot be undone.</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" id="confirmCancelBtn">Cancel</button>
+        <button class="confirm-btn-danger" id="confirmOkBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       APPLICATION LOGIC
+       ========================================================== -->
+  <script>
+    /* ==========================================================
+       AUDIO SYNTHESIZER (Web Audio API)
+       ========================================================== */
+    class SoundEngine {
+      constructor() {
+        this.enabled = true;
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.08) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      startSound() {
+        this.playTone(440, 'triangle', 0.1, 0.1);
+        setTimeout(() => this.playTone(880, 'sine', 0.2, 0.12), 100);
+      }
+      pauseSound() {
+        this.playTone(440, 'sine', 0.15, 0.08);
+      }
+      lapSound() {
+        this.playTone(659.25, 'triangle', 0.08, 0.1);
+        setTimeout(() => this.playTone(987.77, 'sine', 0.15, 0.1), 80);
+      }
+      pointSound(isPositive = true) {
+        if (isPositive) {
+          this.playTone(523.25, 'triangle', 0.08, 0.1);
+          setTimeout(() => this.playTone(659.25, 'triangle', 0.08, 0.1), 70);
+          setTimeout(() => this.playTone(1046.50, 'sine', 0.25, 0.14), 140);
+        } else {
+          this.playTone(300, 'sawtooth', 0.15, 0.09);
+          setTimeout(() => this.playTone(200, 'sawtooth', 0.25, 0.09), 100);
+        }
+      }
+      playArenaBuzzer(duration = 3.5) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // Dual rich sawtooth oscillators for an intense arena / stadium sports buzzer growl
+          const osc1 = this.ctx.createOscillator();
+          const osc2 = this.ctx.createOscillator();
+          const filter = this.ctx.createBiquadFilter();
+          const gainNode = this.ctx.createGain();
+
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(155, now);
+
+          osc2.type = 'sawtooth';
+          osc2.frequency.setValueAtTime(165, now); // Detuned for authentic arena rumble
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1400, now);
+
+          // Punchy attack, solid sustain for 3.5s, clean release
+          gainNode.gain.setValueAtTime(0.0001, now);
+          gainNode.gain.linearRampToValueAtTime(0.32, now + 0.04);
+          gainNode.gain.setValueAtTime(0.32, now + duration - 0.15);
+          gainNode.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+          osc1.connect(filter);
+          osc2.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(this.ctx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + duration);
+          osc2.stop(now + duration);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      timeUpAlarm() {
+        this.playArenaBuzzer(3.5);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // Sound toggle
+    const soundToggle = document.getElementById('soundToggle');
+    const soundToggleText = document.getElementById('soundToggleText');
+    soundToggle.addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      soundToggle.classList.toggle('active', sound.enabled);
+      if (soundToggleText) {
+        soundToggleText.textContent = sound.enabled ? 'Sound ON' : 'Sound OFF';
+      }
+      try { localStorage.setItem('tgitr_sound_enabled', sound.enabled ? '1' : '0'); } catch(e){}
+      showToast(`Audio feedback: ${sound.enabled ? 'ON' : 'OFF'}`);
+    });
+
+    // Fullscreen toggle
+    const fullscreenToggle = document.getElementById('fullscreenToggle');
+    fullscreenToggle.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        fullscreenToggle.classList.add('active');
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        fullscreenToggle.classList.remove('active');
+      }
+    });
+
+    /* ==========================================================
+       ROUND NUMBER INTERFACE
+       ========================================================== */
+    const roundTitleDisplay = document.getElementById('roundTitleDisplay');
+    const roundNumberInput = document.getElementById('roundNumberInput');
+    const btnRoundMinus = document.getElementById('btnRoundMinus');
+    const btnRoundPlus = document.getElementById('btnRoundPlus');
+
+    let currentRound = 1;
+
+    function setRound(newRound) {
+      currentRound = Math.max(1, parseInt(newRound, 10) || 1);
+      roundNumberInput.value = currentRound;
+      roundTitleDisplay.textContent = `ROUND #${currentRound}`;
+      localStorage.setItem('tgitr_current_round', currentRound);
+    }
+
+    roundNumberInput.addEventListener('input', () => {
+      setRound(roundNumberInput.value);
+    });
+
+    btnRoundMinus.addEventListener('click', () => {
+      if (currentRound > 1) {
+        setRound(currentRound - 1);
+        sound.playTone(400, 'sine', 0.08);
+      }
+    });
+
+    btnRoundPlus.addEventListener('click', () => {
+      setRound(currentRound + 1);
+      sound.playTone(600, 'triangle', 0.08);
+      showToast(`🏆 Moved to Round #${currentRound}!`);
+    });
+
+    /* ==========================================================
+       COUNTDOWN TIMER LOGIC
+       ========================================================== */
+    const displayMinutes = document.getElementById('displayMinutes');
+    const displaySeconds = document.getElementById('displaySeconds');
+    const displayMs = document.getElementById('displayMs');
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPlayText = document.getElementById('btnPlayText');
+    const btnPause = document.getElementById('btnPause');
+    const btnLap = document.getElementById('btnLap');
+    const btnReset = document.getElementById('btnReset');
+
+    const lapsSidebarCard = document.getElementById('lapsSidebarCard');
+    const lapsList = document.getElementById('lapsList');
+    const lapCountEl = document.getElementById('lapCount');
+    const btnClearLaps = document.getElementById('btnClearLaps');
+
+    const customMinutesInput = document.getElementById('customMinutesInput');
+    const minPills = document.querySelectorAll('.min-pill');
+
+    let configuredMinutes = 10;
+    let totalDurationMs = 10 * 60 * 1000;
+    let remainingMs = totalDurationMs;
+    let endTime = 0;
+    let timerInterval = null;
+    let isRunning = false;
+    let laps = [];
+
+    function formatNumber(num, digits = 2) {
+      return num.toString().padStart(digits, '0');
+    }
+
+    function updateCountdownUI(msLeft) {
+      if (msLeft < 0) msLeft = 0;
+      const totalSecs = Math.floor(msLeft / 1000);
+      const centis = Math.floor((msLeft % 1000) / 10);
+      const secs = totalSecs % 60;
+      const mins = Math.floor(totalSecs / 60);
+
+      displayMinutes.textContent = formatNumber(mins);
+      displaySeconds.textContent = formatNumber(secs);
+      displayMs.textContent = '.' + formatNumber(centis);
+
+      if (isRunning && msLeft > 0 && msLeft <= 60000) {
+        timerDisplay.classList.add('danger-time');
+      } else {
+        timerDisplay.classList.remove('danger-time');
+      }
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      if (remainingMs <= 0) {
+        resetTimer();
+      }
+
+      isRunning = true;
+      endTime = Date.now() + remainingMs;
+
+      timerInterval = setInterval(() => {
+        remainingMs = endTime - Date.now();
+        if (remainingMs <= 0) {
+          remainingMs = 0;
+          updateCountdownUI(0);
+          onTimeExpired();
+        } else {
+          updateCountdownUI(remainingMs);
+        }
+      }, 10);
+
+      btnPlay.disabled = true;
+      btnPause.disabled = false;
+      btnLap.disabled = false;
+      sound.startSound();
+    }
+
+    function pauseTimer() {
+      if (!isRunning) return;
+      isRunning = false;
+      clearInterval(timerInterval);
+      remainingMs = Math.max(0, endTime - Date.now());
+
+      btnPlay.disabled = false;
+      btnPlayText.textContent = 'Resume';
+      btnPause.disabled = true;
+      sound.pauseSound();
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      remainingMs = totalDurationMs;
+      updateCountdownUI(remainingMs);
+
+      timerDisplay.classList.remove('danger-time');
+      btnPlayText.textContent = 'Start';
+      btnPlay.disabled = false;
+      btnPause.disabled = true;
+      btnLap.disabled = true;
+    }
+
+    function onTimeExpired() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      btnPlay.disabled = false;
+      btnPlayText.textContent = 'Restart';
+      btnPause.disabled = true;
+      btnLap.disabled = true;
+      timerDisplay.classList.add('danger-time');
+
+      sound.playArenaBuzzer(3.5);
+      showToast(`🚨 TIME'S UP! Arena Buzzer Activated! (Round #${currentRound})`);
+    }
+
+    function recordLap() {
+      if (!remainingMs && remainingMs !== 0) return;
+      const totalSecs = Math.floor(remainingMs / 1000);
+      const centis = Math.floor((remainingMs % 1000) / 10);
+      const secs = totalSecs % 60;
+      const mins = Math.floor(totalSecs / 60);
+
+      const formatted = `${formatNumber(mins)}:${formatNumber(secs)}.${formatNumber(centis)}`;
+      const lapNum = laps.length + 1;
+      laps.unshift({ num: lapNum, time: formatted, round: currentRound });
+      try { localStorage.setItem('tgitr_laps', JSON.stringify(laps)); } catch(e){}
+
+      sound.lapSound();
+      renderLaps();
+      showToast(`🚩 Lap ${lapNum} at ${formatted} remaining`);
+    }
+
+    function renderLaps() {
+      if (laps.length === 0) {
+        lapsSidebarCard.style.display = 'none';
+        return;
+      }
+      lapsSidebarCard.style.display = 'flex';
+      lapCountEl.textContent = laps.length;
+      lapsList.innerHTML = laps.map(lap => `
+        <div class="lap-badge-item">
+          <span class="lap-title">LAP #${lap.num} (R${lap.round})</span>
+          <span style="color: #fff;">${lap.time}</span>
+        </div>
+      `).join('');
+    }
+
+    function setTimerMinutes(mins) {
+      mins = Math.max(1, parseInt(mins, 10) || 1);
+      configuredMinutes = mins;
+      customMinutesInput.value = mins;
+      totalDurationMs = mins * 60 * 1000;
+      resetTimer();
+
+      minPills.forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.minutes, 10) === mins);
+      });
+
+      localStorage.setItem('tgitr_timer_minutes', mins);
+      showToast(`⏱️ Timer set to ${mins} minutes`);
+    }
+
+    minPills.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTimerMinutes(btn.dataset.minutes);
+      });
+    });
+
+    customMinutesInput.addEventListener('input', () => {
+      const val = parseInt(customMinutesInput.value, 10);
+      if (val >= 1 && val <= 180) {
+        // Update display without toast/save spam on every keystroke
+        const ms = val * 60 * 1000;
+        if (!isRunning) {
+          configuredMinutes = val;
+          totalDurationMs = ms;
+          remainingMs = ms;
+          updateCountdownUI(ms);
+          minPills.forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.minutes, 10) === val);
+          });
+        }
+      }
+    });
+    customMinutesInput.addEventListener('change', () => {
+      setTimerMinutes(customMinutesInput.value);
+    });
+    customMinutesInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') setTimerMinutes(customMinutesInput.value);
+    });
+
+    btnPlay.addEventListener('click', startTimer);
+    btnPause.addEventListener('click', pauseTimer);
+    btnLap.addEventListener('click', recordLap);
+    btnReset.addEventListener('click', resetTimer);
+    btnClearLaps.addEventListener('click', () => {
+      laps = [];
+      try { localStorage.removeItem('tgitr_laps'); } catch(e){}
+      renderLaps();
+    });
+
+    /* ==========================================================
+       HISTORY STATE & LOGIC
+       ========================================================== */
+    const HISTORY_KEY = 'tgitr_points_history';
+    let pointsHistory = [];
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (raw) pointsHistory = JSON.parse(raw);
+      } catch (e) { pointsHistory = []; }
+    }
+
+    function saveHistory() {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(pointsHistory));
+      } catch (e) {}
+    }
+
+    function addHistoryEntry(team, delta, reason = '') {
+      pointsHistory.unshift({
+        ts: Date.now(),
+        round: currentRound,
+        teamId: team.id,
+        teamName: team.name,
+        delta: delta,
+        newTotal: team.points,
+        reason: reason
+      });
+      // Keep last 500 entries max
+      if (pointsHistory.length > 500) pointsHistory.length = 500;
+      saveHistory();
+    }
+
+    const historyModal = document.getElementById('historyModal');
+    let _historyFilterTeamId = null; // null = all teams, string = specific team
+
+    function openHistoryModal(teamIdOrEvent, event) {
+      // Called from per-row button: openHistoryModal('TR-01', event)
+      // Called from global toolbar: openHistoryModal() — no args
+      let teamId = null;
+      if (typeof teamIdOrEvent === 'string') {
+        teamId = teamIdOrEvent;
+        if (event) event.stopPropagation();
+      }
+      _historyFilterTeamId = teamId;
+      renderHistoryModal();
+      historyModal.classList.add('active');
+    }
+
+    function closeHistoryModal() {
+      historyModal.classList.remove('active');
+      _historyFilterTeamId = null;
+    }
+
+    function renderHistoryModal() {
+      const viewport = document.getElementById('historyTableViewport');
+      const countBadge = document.getElementById('historyCountBadge');
+      const footerCount = document.getElementById('historyFooterCount');
+      const footerRounds = document.getElementById('historyFooterRounds');
+      const titleEl = document.getElementById('historyModalTitle');
+      const subtitleEl = document.getElementById('historyModalSubtitle');
+
+      const isTeamView = !!_historyFilterTeamId;
+      const entries = isTeamView
+        ? pointsHistory.filter(e => e.teamId === _historyFilterTeamId)
+        : pointsHistory;
+
+      // Update modal header
+      if (isTeamView) {
+        const team = teams.find(t => t.id === _historyFilterTeamId);
+        const tName = team ? team.name : _historyFilterTeamId;
+        titleEl.textContent = tName + ' — History';
+        subtitleEl.textContent = `Point changes for this team across all rounds`;
+      } else {
+        titleEl.textContent = 'Points History';
+        subtitleEl.textContent = 'Full log of score changes across all rounds';
+      }
+
+      const total = entries.length;
+      countBadge.textContent = `${total} Event${total !== 1 ? 's' : ''}`;
+      footerCount.textContent = total;
+
+      if (total === 0) {
+        viewport.innerHTML = `
+          <div class="history-empty">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 8v4l3 3"></path>
+            </svg>
+            <p>${isTeamView ? 'No points recorded for this team yet.' : 'No point changes recorded yet.<br>Start adding points to track history.'}</p>
+          </div>
+        `;
+        footerRounds.textContent = '—';
+        return;
+      }
+
+      const uniqueRounds = [...new Set(entries.map(e => e.round))].sort((a,b) => a-b);
+      footerRounds.textContent = uniqueRounds.map(r => `#${r}`).join(', ');
+
+      viewport.innerHTML = `
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th style="width:80px">Round</th>
+              ${!isTeamView ? '<th>Team</th>' : ''}
+              <th style="width:90px">Change</th>
+              <th style="width:100px">Total</th>
+              <th>Reason</th>
+              <th style="width:110px">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.map(entry => {
+              const initials = entry.teamName.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase() || 'TR';
+              const deltaClass = entry.delta > 0 ? 'history-delta-pos' : entry.delta < 0 ? 'history-delta-neg' : 'history-delta-zero';
+              const deltaStr = entry.delta > 0 ? `+${entry.delta}` : `${entry.delta}`;
+              const d = new Date(entry.ts);
+              const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+              return `
+                <tr>
+                  <td><span class="history-round-badge">R${entry.round}</span></td>
+                  ${!isTeamView ? `
+                  <td>
+                    <div class="history-team-chip">
+                      <div class="history-team-avatar">${escapeHTML(initials)}</div>
+                      <div>
+                        <div style="font-weight:700;color:#fff;font-size:0.85rem">${escapeHTML(entry.teamName)}</div>
+                        <div style="font-size:0.7rem;color:var(--text-muted)">${escapeHTML(entry.teamId)}</div>
+                      </div>
+                    </div>
+                  </td>` : ''}
+                  <td><span class="${deltaClass}">${deltaStr}</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--primary)">${entry.newTotal}</td>
+                  <td><span class="history-reason-cell">${entry.reason ? escapeHTML(entry.reason) : '<span style="opacity:0.35">—</span>'}</span></td>
+                  <td class="history-time-cell">${timeStr}<br><span style="opacity:0.6;font-size:0.65rem">${dateStr}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById('btnOpenHistory').addEventListener('click', openHistoryModal);
+    document.getElementById('btnCloseHistory').addEventListener('click', closeHistoryModal);
+    historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
+
+    document.getElementById('btnClearHistory').addEventListener('click', () => {
+      const isTeamView = !!_historyFilterTeamId;
+      const team = isTeamView ? teams.find(t => t.id === _historyFilterTeamId) : null;
+      showConfirm({
+        title: isTeamView ? `Clear ${team ? team.name : ''} History?` : 'Clear All History?',
+        desc: isTeamView
+          ? `All recorded events for "${team ? team.name : _historyFilterTeamId}" will be permanently deleted.`
+          : 'All recorded point change events for all teams will be permanently deleted. This cannot be undone.',
+        mode: 'danger',
+        okLabel: 'Clear',
+        onOk: () => {
+          if (isTeamView) {
+            pointsHistory = pointsHistory.filter(e => e.teamId !== _historyFilterTeamId);
+          } else {
+            pointsHistory = [];
+          }
+          saveHistory();
+          renderHistoryModal();
+          showToast(isTeamView ? `🗑️ History cleared for ${team ? team.name : ''}` : '🗑️ All points history cleared.');
+        }
+      });
+    });
+
+    /* ==========================================================
+       LEADERBOARD STATE & DATA
+       ========================================================== */
+    const STORAGE_KEY = 'tgitr_leaderboard_data';
+    let teams = [];
+    let selectedTeamId = null;
+
+    function loadSavedData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          teams = JSON.parse(raw);
+          // Guarantee creation order timestamps on loaded data
+          teams.forEach((t, i) => {
+            if (!t.createdAt) t.createdAt = 1700000000000 + i * 1000;
+          });
+        }
+
+        const savedRound = localStorage.getItem('tgitr_current_round');
+        if (savedRound) setRound(savedRound);
+
+        const savedMins = localStorage.getItem('tgitr_timer_minutes');
+        if (savedMins) setTimerMinutes(savedMins);
+
+        const savedSound = localStorage.getItem('tgitr_sound_enabled');
+        if (savedSound !== null) {
+          sound.enabled = savedSound === '1';
+          soundToggle.classList.toggle('active', sound.enabled);
+          if (soundToggleText) soundToggleText.textContent = sound.enabled ? 'Sound ON' : 'Sound OFF';
+        }
+
+        const savedLaps = localStorage.getItem('tgitr_laps');
+        if (savedLaps) {
+          try { laps = JSON.parse(savedLaps); renderLaps(); } catch (e) {}
+        }
+
+        loadHistory();
+      } catch (e) {}
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(teams));
+      } catch (e) {}
+    }
+
+    function sortTeams() {
+      // Row order strictly reflects creation / registration order!
+      teams.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    }
+
+    function calculateRanks() {
+      // Live leaderboard ranks computed strictly from scores descending
+      const sorted = [...teams].sort((a, b) => {
+        const diff = (Number(b.points) || 0) - (Number(a.points) || 0);
+        if (diff !== 0) return diff;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      });
+
+      const rankMap = new Map();
+      sorted.forEach((team, idx) => {
+        let rank = idx + 1;
+        if (idx > 0 && Number(team.points || 0) === Number(sorted[idx - 1].points || 0)) {
+          rank = rankMap.get(sorted[idx - 1].id);
+        }
+        rankMap.set(team.id, rank);
+      });
+      return rankMap;
+    }
+
+    function updateStats() {
+      const totalTeams = teams.length;
+      const totalPoints = teams.reduce((acc, t) => acc + (t.points || 0), 0);
+      const topScore = totalTeams > 0 ? Math.max(...teams.map(t => t.points)) : 0;
+      const avgPoints = totalTeams > 0 ? Math.round(totalPoints / totalTeams) : 0;
+
+      document.getElementById('statTotalTeams').textContent = totalTeams;
+      document.getElementById('statTopScore').textContent = topScore;
+      document.getElementById('statTotalPoints').textContent = totalPoints;
+      document.getElementById('statAvgPoints').textContent = avgPoints;
+      document.getElementById('teamsBadge').textContent = `${totalTeams} Teams`;
+    }
+
+    /* ==========================================================
+       RENDER LEADERBOARD
+       ========================================================== */
+    const leaderboardBody = document.getElementById('leaderboardBody');
+    const emptyState = document.getElementById('emptyState');
+    const raceTable = document.getElementById('raceTable');
+    const searchBox = document.getElementById('searchBox');
+
+    function renderLeaderboard() {
+      sortTeams();
+      updateStats();
+      saveData();
+
+      const rankMap = calculateRanks();
+      const searchQuery = searchBox.value.trim().toLowerCase();
+      const filteredTeams = teams.filter(t => 
+        t.name.toLowerCase().includes(searchQuery) ||
+        t.id.toLowerCase().includes(searchQuery)
+      );
+
+      if (teams.length === 0) {
+        raceTable.style.display = 'none';
+        emptyState.style.display = 'flex';
+        return;
+      }
+
+      raceTable.style.display = 'table';
+      emptyState.style.display = 'none';
+
+      if (filteredTeams.length === 0) {
+        leaderboardBody.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
+              No teams matched "<strong>${escapeHTML(searchQuery)}</strong>".
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      leaderboardBody.innerHTML = filteredTeams.map((team) => {
+        const actualRank = rankMap.get(team.id) || 1;
+        const isTop3 = actualRank <= 3;
+        const rankClass = actualRank === 1 ? 'rank-1' : actualRank === 2 ? 'rank-2' : actualRank === 3 ? 'rank-3' : 'rank-other';
+        const rankIcon = actualRank === 1 ? '🥇' : actualRank === 2 ? '🥈' : actualRank === 3 ? '🥉' : '';
+        const initials = team.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'TR';
+
+        return `
+          <tr class="${rankClass} ${selectedTeamId === team.id ? 'row-selected' : ''}" data-team-id="${team.id}" onclick="handleRowClick(event, '${team.id}')">
+            <td class="rank-cell">
+              <div class="rank-badge" title="Live Score Rank: #${actualRank}">
+                ${isTop3 ? `<span class="rank-medal-icon">${rankIcon}</span>` : ''}
+                <span class="rank-text-num">#${actualRank}</span>
+              </div>
+            </td>
+            <td>
+              <div class="team-cell">
+                <div class="team-avatar">${initials}</div>
+                <div class="team-details">
+                  <div class="team-name">${escapeHTML(team.name)}</div>
+                  <span class="team-id-tag">ID: ${escapeHTML(team.id)}</span>
+                </div>
+              </div>
+            </td>
+            <td class="points-cell">
+              <span class="points-badge" id="points-badge-${team.id}">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                ${team.points}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="row-actions" style="justify-content: flex-end;" onclick="event.stopPropagation()">
+                <button class="quick-point-btn" onclick="quickAddPoints('${team.id}', 10, event)" title="Quick add 10 points">+10</button>
+                <button class="quick-point-btn" onclick="quickAddPoints('${team.id}', 50, event)" title="Quick add 50 points">+50</button>
+                <button class="btn-edit-points" onclick="openPointModal('${team.id}', event)" title="Open score editor">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                  Points
+                </button>
+                <button class="btn-team-history" onclick="openHistoryModal('${team.id}', event)" title="View ${escapeHTML(team.name)} history">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8v4l3 3"></path>
+                  </svg>
+                </button>
+                <button class="btn-del-team" onclick="deleteTeam('${team.id}', event)" title="Delete ${escapeHTML(team.name)}">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    /* ==========================================================
+       REGISTER TEAM LOGIC & MODAL WINDOW HANDLERS
+       ========================================================== */
+    const addTeamForm = document.getElementById('addTeamForm');
+    const teamNameInput = document.getElementById('teamNameInput');
+    const teamIdInput = document.getElementById('teamIdInput');
+    const initialPointsInput = document.getElementById('initialPointsInput');
+
+    const registerModal = document.getElementById('registerModal');
+    const registerModalCloseBtn = document.getElementById('registerModalCloseBtn');
+    const btnCancelRegister = document.getElementById('btnCancelRegister');
+    const btnOpenRegisterTop = document.getElementById('btnOpenRegisterTop');
+    const btnOpenRegisterToolbar = document.getElementById('btnOpenRegisterToolbar');
+    const btnOpenRegisterSidebar = document.getElementById('btnOpenRegisterSidebar');
+
+    function openRegisterModal() {
+      if (!registerModal) return;
+      registerModal.classList.add('active');
+      setTimeout(() => teamNameInput.focus(), 60);
+      sound.init();
+    }
+
+    function closeRegisterModal() {
+      if (!registerModal) return;
+      registerModal.classList.remove('active');
+    }
+
+    if (btnOpenRegisterTop) btnOpenRegisterTop.addEventListener('click', openRegisterModal);
+    if (btnOpenRegisterToolbar) btnOpenRegisterToolbar.addEventListener('click', openRegisterModal);
+    if (btnOpenRegisterSidebar) btnOpenRegisterSidebar.addEventListener('click', openRegisterModal);
+    if (registerModalCloseBtn) registerModalCloseBtn.addEventListener('click', closeRegisterModal);
+    if (btnCancelRegister) btnCancelRegister.addEventListener('click', closeRegisterModal);
+
+    if (registerModal) {
+      registerModal.addEventListener('click', (e) => {
+        if (e.target === registerModal) closeRegisterModal();
+      });
+    }
+
+    addTeamForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = teamNameInput.value.trim();
+      const id = teamIdInput.value.trim();
+      const points = parseInt(initialPointsInput.value, 10) || 0;
+
+      if (!name || !id) return;
+
+      if (teams.some(t => t.id.toLowerCase() === id.toLowerCase())) {
+        showToast(`⚠️ Team ID "${id}" is already registered! Please use a unique ID.`);
+        teamIdInput.focus();
+        return;
+      }
+
+      const newTeam = {
+        id: id,
+        name: name,
+        points: points,
+        createdAt: Date.now()
+      };
+
+      teams.push(newTeam);
+      renderLeaderboard();
+
+      teamNameInput.value = '';
+      teamIdInput.value = '';
+      initialPointsInput.value = '0';
+
+      sound.pointSound(true);
+      showToast(`✅ "${name}" added to the leaderboard!`);
+      closeRegisterModal();
+    });
+
+    /* ==========================================================
+       POINT ADDING LOGIC & SORTING
+       ========================================================== */
+    function handleRowClick(event, teamId) {
+      selectedTeamId = teamId;
+      openPointModal(teamId);
+    }
+
+    function quickAddPoints(teamId, delta, event) {
+      if (event) event.stopPropagation();
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      team.points += delta;
+      addHistoryEntry(team, delta, '');
+      sound.pointSound(delta > 0);
+      showToast(`${delta > 0 ? '➕ Added' : '➖ Subtracted'} ${Math.abs(delta)} pts for ${team.name}!`);
+
+      renderLeaderboard();
+      triggerPopAnimation(teamId);
+    }
+
+    function triggerPopAnimation(teamId) {
+      setTimeout(() => {
+        const badge = document.getElementById(`points-badge-${teamId}`);
+        if (badge) {
+          badge.classList.remove('points-highlight');
+          void badge.offsetWidth;
+          badge.classList.add('points-highlight');
+        }
+      }, 50);
+    }
+
+    /* Modal Controls */
+    const pointModal = document.getElementById('pointModal');
+    const modalTeamName = document.getElementById('modalTeamName');
+    const modalTeamId = document.getElementById('modalTeamId');
+    const modalTeamAvatar = document.getElementById('modalTeamAvatar');
+    const modalCurrentPoints = document.getElementById('modalCurrentPoints');
+    const customPointsInput = document.getElementById('customPointsInput');
+    const reasonInput = document.getElementById('reasonInput');
+    const pointsForm = document.getElementById('pointsForm');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    function openPointModal(teamId, event) {
+      if (event) event.stopPropagation();
+      selectedTeamId = teamId;
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      modalTeamName.textContent = team.name;
+      modalTeamId.textContent = `ID: ${team.id}`;
+      modalCurrentPoints.textContent = team.points;
+      modalTeamAvatar.textContent = team.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+      customPointsInput.value = '';
+      reasonInput.value = '';
+      pointModal.classList.add('active');
+      customPointsInput.focus();
+    }
+
+    function closePointModal() {
+      pointModal.classList.remove('active');
+      selectedTeamId = null;
+      renderLeaderboard();
+    }
+
+    modalCloseBtn.addEventListener('click', closePointModal);
+    pointModal.addEventListener('click', (e) => {
+      if (e.target === pointModal) closePointModal();
+    });
+
+    function applyPreset(value) {
+      customPointsInput.value = value;
+      customPointsInput.focus();
+    }
+
+    pointsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const delta = parseInt(customPointsInput.value, 10);
+      if (isNaN(delta)) return;
+
+      const team = teams.find(t => t.id === selectedTeamId);
+      if (!team) return;
+
+      team.points += delta;
+      const reason = reasonInput.value.trim();
+
+      addHistoryEntry(team, delta, reason);
+      sound.pointSound(delta >= 0);
+      showToast(`🎯 Updated ${team.name}: ${delta >= 0 ? '+' : ''}${delta} pts ${reason ? '(' + reason + ')' : ''}`);
+
+      closePointModal();
+      triggerPopAnimation(team.id);
+    });
+
+    /* Custom Confirm Dialog Helper */
+    let _confirmCallback = null;
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    const confirmOkBtn = document.getElementById('confirmOkBtn');
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+    function showConfirm({ title, desc, mode = 'danger', okLabel = 'Confirm', onOk }) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmDesc').textContent = desc;
+      confirmOkBtn.textContent = okLabel;
+      confirmOkBtn.className = mode === 'warning' ? 'confirm-btn-warn' : 'confirm-btn-danger';
+      const icon = document.getElementById('confirmIcon');
+      icon.className = `confirm-icon ${mode === 'warning' ? 'warning' : 'danger'}`;
+      _confirmCallback = onOk;
+      confirmOverlay.classList.add('active');
+    }
+
+    function closeConfirm() {
+      confirmOverlay.classList.remove('active');
+      _confirmCallback = null;
+    }
+
+    confirmOkBtn.addEventListener('click', () => {
+      if (_confirmCallback) _confirmCallback();
+      closeConfirm();
+    });
+    confirmCancelBtn.addEventListener('click', closeConfirm);
+    confirmOverlay.addEventListener('click', (e) => {
+      if (e.target === confirmOverlay) closeConfirm();
+    });
+
+    /* Delete Team (with explicit confirmation) */
+    function deleteTeam(teamId, event) {
+      if (event) event.stopPropagation();
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      showConfirm({
+        title: 'Delete Team?',
+        desc: `Permanently remove "${team.name}" (ID: ${team.id}) from the leaderboard? This cannot be undone.`,
+        mode: 'danger',
+        okLabel: 'Delete',
+        onOk: () => {
+          teams = teams.filter(t => t.id !== teamId);
+          renderLeaderboard();
+          sound.pointSound(false);
+          showToast(`🗑️ Deleted team "${team.name}"`);
+        }
+      });
+    }
+
+    /* Reset All Team Scores to 0 (Keep team records intact) */
+    document.getElementById('btnClearTeams').addEventListener('click', () => {
+      if (teams.length === 0) {
+        showToast('ℹ️ No teams registered to reset.');
+        return;
+      }
+      showConfirm({
+        title: 'Reset All Scores?',
+        desc: 'All team scores will be set back to 0 points. Teams remain on the leaderboard — only their points are cleared.',
+        mode: 'warning',
+        okLabel: 'Reset Scores',
+        onOk: () => {
+          teams.forEach(t => { t.points = 0; });
+          renderLeaderboard();
+          sound.pointSound(false);
+          showToast('🔄 All team scores have been reset to 0 points!');
+        }
+      });
+    });
+
+    searchBox.addEventListener('input', renderLeaderboard);
+
+    /* Sample Teams Generator */
+    const sampleTeams = [
+      { id: 'TR-01', name: 'Quantum Overclockers', points: 340, createdAt: 1700000001000 },
+      { id: 'TR-02', name: 'Circuit Breakers', points: 415, createdAt: 1700000002000 },
+      { id: 'TR-03', name: 'Binary Phantoms', points: 290, createdAt: 1700000003000 },
+      { id: 'TR-04', name: 'Neon Glitchers', points: 480, createdAt: 1700000004000 },
+      { id: 'TR-05', name: 'Algo Apex', points: 195, createdAt: 1700000005000 }
+    ];
+
+    function loadSamples() {
+      teams = JSON.parse(JSON.stringify(sampleTeams));
+      renderLeaderboard();
+      sound.pointSound(true);
+      showToast('🚀 Loaded sample competitors!');
+    }
+
+    document.getElementById('btnLoadSample').addEventListener('click', loadSamples);
+    document.getElementById('btnEmptySample').addEventListener('click', loadSamples);
+
+    /* Toast Notification Helper */
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="color:var(--primary)">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.25s ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 2800);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (confirmOverlay && confirmOverlay.classList.contains('active')) { closeConfirm(); return; }
+        if (historyModal && historyModal.classList.contains('active')) { closeHistoryModal(); return; }
+        if (pointModal && pointModal.classList.contains('active')) closePointModal();
+        if (registerModal && registerModal.classList.contains('active')) closeRegisterModal();
+      }
+    });
+
+    // Ensure audio engine context unlocks on first interaction
+    document.addEventListener('click', () => sound.init(), { once: true });
+
+    // Initial load
+    loadSavedData();
+    renderLeaderboard();
+  </script>
+</body>
+</html>
