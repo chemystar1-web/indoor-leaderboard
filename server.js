@@ -26,8 +26,16 @@ const server = http.createServer((req, res) => {
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=UTF-8' });
-      res.end('404 Not Found');
+      const fallbackPath = path.join(__dirname, 'index.html');
+      fs.stat(fallbackPath, (fallbackErr, fallbackStats) => {
+        if (fallbackErr || !fallbackStats.isFile()) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=UTF-8' });
+          res.end('404 Not Found');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-cache' });
+        fs.createReadStream(fallbackPath).pipe(res);
+      });
       return;
     }
 
